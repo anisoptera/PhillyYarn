@@ -1,5 +1,238 @@
 Hadoop HDFS Change Log
 
+Release 2.7.3 - 2016-08-25
+
+  INCOMPATIBLE CHANGES
+
+  NEW FEATURES
+
+  IMPROVEMENTS
+
+    HDFS-8647. Abstract BlockManager's rack policy into BlockPlacementPolicy.
+    (Brahma Reddy Battula via mingma)
+
+    HDFS-7163. WebHdfsFileSystem should retry reads according to the configured
+    retry policy. (Eric Payne via kihwal)
+
+    HDFS-9047. Retire libwebhdfs (kihwal)
+
+    HDFS-9569. Log the name of the fsimage being loaded for better
+    supportability. (Yongjun Zhang)
+
+    HDFS-9415. Document dfs.cluster.administrators and
+    dfs.permissions.superusergroup. (Xiaobing Zhou via Arpit Agarwal)
+
+    HDFS-9634. webhdfs client side exceptions don't provide enough details
+    (Eric Payne via kihwal)
+
+    HDFS-9654. Code refactoring for HDFS-8578.  (szetszwo)
+
+    HDFS-9669. TcpPeerServer should respect ipc.server.listen.queue.size
+    (Elliot Clark via cmccabe)
+
+    HDFS-4946. Allow preferLocalNode in BlockPlacementPolicyDefault to be
+    configurable (James Kinley and Nathan Roberts via kihwal)
+
+    HDFS-8578. On upgrade, Datanode should process all storage/data dirs in
+    parallel.  (vinayakumarb and szetszwo via szetszwo)
+
+    HDFS-9048. DistCp documentation is out-of-dated
+    (Daisuke Kobayashi via iwasakims)
+
+    HDFS-9860. Backport HDFS-9638 to branch-2.7. (Wei-Chiu Chuang via aajisaka)
+
+    HDFS-8101. DFSClient use of non-constant DFSConfigKeys pulls in WebHDFS
+    classes at runtime. (Sean Busbey via atm)
+
+    HDFS-8772. Fix TestStandbyIsHot#testDatanodeRestarts which occasionally fails.
+    (Walter Su via wang).
+
+    HDFS-9906. Remove spammy log spew when a datanode is restarted.
+    (Brahma Reddy Battula via arp)
+
+    HDFS-2580. NameNode#main(...) can make use of GenericOptionsParser. (harsh)
+
+    HDFS-10264. Logging improvements in FSImageFormatProtobuf.Saver.
+    (Xiaobing Zhou via arp)
+
+    HDFS-10186. DirectoryScanner: Improve logs by adding full path of both
+    actual and expected block directories. (Rakesh R via szetszwo)
+
+    HDFS-10488. Updated WebHDFS documentation regarding CREATE and MKDIR default
+    permissions. (Wellington Chevreuil via wang)
+
+  OPTIMIZATIONS
+
+    HDFS-8845. DiskChecker should not traverse the entire tree (Chang Li via
+    Colin P. McCabe)
+
+  BUG FIXES
+
+    HDFS-9289. Make DataStreamer#block thread safe and verify genStamp in
+    commitBlock. (Chang Li via kihwal)
+
+    HDFS-4937. ReplicationMonitor can infinite-loop in 
+    BlockPlacementPolicyDefault#chooseRandom(). (kihwal)
+
+    HDFS-9383. TestByteArrayManager#testByteArrayManager fails.
+    (szetszwo via kihwal)
+
+    HDFS-9072. Fix random failures in TestJMXGet (J.Andreina via kihwal)
+
+    HDFS-6481. DatanodeManager#getDatanodeStorageInfos() should check the
+    length of storageIDs. (szetszwo via Arpit Agarwal)
+
+    HDFS-9313. Possible NullPointerException in BlockManager if no excess
+    replica can be chosen. (mingma)
+
+    HDFS-9314. Improve BlockPlacementPolicyDefault's picking of excess
+    replicas. (Xiao Chen via zhz)
+
+    HDFS-9516. Truncate file fails with data dirs on multiple disks.
+    (Plamen Jeliazkov via shv)
+
+    HDFS-9533. seen_txid in the shared edits directory is modified during
+    bootstrapping (kihwal)
+
+    HDFS-9505. HDFS Architecture documentation needs to be refreshed.
+    (Masatake Iwasaki via aajisaka)
+
+    HDFS-8914. Document HA support in the HDFS HdfsDesign.md.
+    (Lars Francke via wheat9)
+
+    HDFS-9198. Coalesce IBR processing in the NN. (Daryn Sharp via umamahesh)
+
+    HDFS-9648. TestStartup.testImageChecksum is broken by HDFS-9569's message
+    change. (Wei-Chiu Chuang via Yongjun Zhang)
+
+    HDFS-9661. Deadlock in DN.FsDatasetImpl between moveBlockAcrossStorage and
+    createRbw (ade via vinayakumarb)
+
+    HDFS-9625. set replication for empty file failed when set storage policy
+    (DENG FEI via vinayakumarb)
+
+    HDFS-9690. ClientProtocol.addBlock is not idempotent after HDFS-8071.
+    (szetszwo)
+
+    HDFS-9406. FSImage may get corrupted after deleting snapshot.
+    (Contributed by Jing Zhao, Stanislav Antic, Vinayakumar B, Yongjun Zhang)
+
+    HDFS-9743. Fix TestLazyPersistFiles#testFallbackToDiskFull (kihwal)
+
+    HDFS-9740. Use a reasonable limit in DFSTestUtil.waitForMetric()
+    (Chang Li via vinayakumarb)
+
+    HDFS-9730. Storage ID update does not happen when there is a layout change
+    (Tsz Wo Nicholas Sze via kihwal)
+
+    HDFS-9724. Degraded performance in WebHDFS listing as it does not reuse
+    ObjectMapper. (Akira AJISAKA via wheat9)
+
+    HDFS-9752. Permanent write failures may happen to slow writers during
+    datanode rolling upgrades (Walter Su via kihwal)
+
+    HDFS-9779 . TestReplicationPolicyWithNodeGroup NODE variable picks wrong rack value
+    (Kuhu Shukla via umamahesh)
+
+    HDFS-9784. Example usage is not correct in Transparent Encryption document.
+    (Takashi Ohnishi via aajisaka)
+
+    HDFS-9765. TestBlockScanner#testVolumeIteratorWithCaching fails
+    intermittently. (aajisaka)
+
+    HDFS-9864. Correct reference for RENEWDELEGATIONTOKEN and
+    CANCELDELEGATIONTOKEN in webhdfs doc. (Brahma Reddy Battula via aajisaka)
+
+    HDFS-9880. TestDatanodeRegistration fails occasionally (kihwal)
+
+    HDFS-9766. TestDataNodeMetrics#testDataNodeTimeSpend fails intermittently.
+    (Xiao Chen via aajisaka)
+
+    HDFS-9851. NameNode throws NPE when setPermission is called on a path that
+    does not exist. (Brahma Reddy Battula via aajisaka)
+
+    HDFS-9865. TestBlockReplacement fails intermittently in trunk
+    (Lin Yiqun via iwasakims)
+
+    HDFS-9812. Streamer threads leak if failure happens when closing
+    DFSOutputStream. (Lin Yiqun via aajisaka)
+
+    HDFS-9904. testCheckpointCancellationDuringUpload occasionally fails.
+    (Lin Yiqun via kihwal)
+
+    HDFS-9874. Long living DataXceiver threads cause volume shutdown to block.
+    (Rushabh Shah via kihwal)
+
+    HDFS-10178. Permanent write failures can happen if pipeline recoveries
+    occur for the first packet (kihwal)
+
+    HDFS-9917. IBR accumulate more objects when SNN was down for sometime.
+    (Brahma Reddy Battula via vinayakumarb)
+
+    HDFS-10239. Fsshell mv fails if port usage doesn't match in src and
+    destination paths (Kuhu Shukla via kihwal)
+
+    HDFS-9555. LazyPersistFileScrubber should still sleep if there are errors
+    in the clear progress (Phil Yang via kihwal)
+
+    HDFS-10245. Fix the findbugs warnings in branch-2.7.
+    (Brahma Reddy Battula via aajisaka)
+
+    HDFS-9958. BlockManager#createLocatedBlocks can throw NPE for corruptBlocks
+    on failed storages. (Kuhu Shukla via kihwal)
+
+    HDFS-10347. Namenode report bad block method doesn't log the bad block or
+    datanode. (Rushabh Shah via kihwal)
+
+    HDFS-2043. TestHFlush failing intermittently. (Lin Yiqun via iwasakims)
+
+    HDFS-10372. Fix for failing TestFsDatasetImpl#testCleanShutdownOfVolume.
+    (Rushabh Shah via kihwal)
+
+    HDFS-9476. TestDFSUpgradeFromImage#testUpgradeFromRel1BBWImage
+    occasionally fail. (Masatake Iwasaki via aajisaka)
+
+    HDFS-8548. Minicluster throws NPE on shutdown.
+    (surendra singh lilhore via xyao)
+
+    HDFS-8581. ContentSummary on / skips further counts on yielding lock
+    (J.Andreina via vinayakumarb)
+
+    HDFS-10474. hftp copy fails when file name with Chinese+special char
+    in branch-2 (Brahma Reddy Battula)
+
+    HDFS-9530. ReservedSpace is not cleared for abandoned Blocks
+    (Brahma Reddy Battula)
+
+    HDFS-10458. getFileEncryptionInfo should return quickly for non-encrypted
+    cluster. (zhz)
+
+    HDFS-9365. Balaner does not work with the HDFS-6376 HA setup. (szetszwo)
+
+    HDFS-10335. Mover$Processor#chooseTarget() always chooses the first
+    matching target storage group. (Mingliang Liu via szetszwo)
+
+    HDFS-10319. Balancer should not try to pair storages with different types.
+    (szetszwo)
+
+    HDFS-10275. TestDataNodeMetrics failing intermittently due to
+    TotalWriteTime counted incorrectly. (Yiqun Lin via waltersu4549)
+
+    HDFS-9772. TestBlockReplacement#testThrottler doesn't work as expected.
+    (Yiqun Lin via waltersu4549)
+
+    HDFS-10261. TestBookKeeperHACheckpoints doesn't handle ephemeral HTTP
+    ports. (Eric Badger via kihwal)
+
+    HDFS-9478. Reason for failing ipc.FairCallQueue contruction should be
+    thrown. (Ajith S via arp)
+
+    HDFS-10182. Hedged read might overwrite user's buf.
+    (zhouyingchao via waltersu4549)
+
+    HDFS-10623. Remove unused import of httpclient.HttpConnection from
+    TestWebHdfsTokens. (Hanish Koneru via Arpit Agarwal)
+
 Release 2.7.2 - 2016-01-25
 
   INCOMPATIBLE CHANGES
@@ -1131,7 +1364,31 @@ Release 2.7.0 - 2015-04-20
       HDFS-7824. GetContentSummary API and its namenode implementation for
       Storage Type Quota/Usage. (Xiaoyu Yao via Arpit Agarwal)
 
-Release 2.6.4 - UNRELEASED
+Release 2.6.5 - UNRELEASED
+
+  INCOMPATIBLE CHANGES
+
+  NEW FEATURES
+
+  IMPROVEMENTS
+
+     HDFS-9629. Update the footer of Web UI to show year 2016
+     (Xiao Chen and Vinayakumar B via vinayakumarb)
+
+     HDFS-9688. Test the effect of nested encryption zones in HDFS downgrade.
+     (zhz)
+
+  OPTIMIZATIONS
+
+  BUG FIXES
+
+    HDFS-9347. Invariant assumption in TestQuorumJournalManager.shutdown()
+    is wrong. (Wei-Chiu Chuang via zhz)
+
+    HDFS-10271. Extra bytes are getting released from reservedSpace for append
+    (Brahma Reddy Battula via vinayakumarb)
+
+Release 2.6.4 - 2016-02-11
 
   INCOMPATIBLE CHANGES
 
@@ -1142,6 +1399,9 @@ Release 2.6.4 - UNRELEASED
   OPTIMIZATIONS
 
   BUG FIXES
+
+    HDFS-9600. do not check replication if the block is under construction
+    (Phil Yang via vinayakumarb)
 
     HDFS-9294. DFSClient deadlock when close file and failed to renew lease.
     (Brahma Reddy Battula via szetszwo)
@@ -1154,25 +1414,24 @@ Release 2.6.3 - 2015-12-17
 
   IMPROVEMENTS
 
+  OPTIMIZATIONS
+
   BUG FIXES
 
-    HDFS-9434. Recommission a datanode with 500k blocks may pause NN for 30
-    seconds for printing info log messags.  (szetszwo)
-
-    HDFS-9273. ACLs on root directory may be lost after NN restart.
-    (Xiao Chen via cnauroth)
-
-    HDFS-9470. Encryption zone on root not loaded from fsimage after NN
-    restart. (Xiao Chen via wang)
-
-    HDFS-9289. Make DataStreamer#block thread safe and verify genStamp in
-    commitBlock. (Chang Li via kihwal)
+    HDFS-8615. Correct HTTP method in WebHDFS document.
+    (Brahma Reddy Battula via aajisaka)
 
     HDFS-9431. DistributedFileSystem#concat fails if the target path is
     relative. (Kazuho Fujii via aajisaka)
 
-    HDFS-8615. Correct HTTP method in WebHDFS document.
-    (Brahma Reddy Battula via aajisaka)
+    HDFS-9434. Recommission a datanode with 500k blocks may pause NN for 30
+    seconds for printing info log messags.  (szetszwo)
+
+    HDFS-9470. Encryption zone on root not loaded from fsimage after NN
+    restart. (Xiao Chen via wang)
+
+    HDFS-9273. ACLs on root directory may be lost after NN restart.
+    (Xiao Chen via cnauroth)
 
 Release 2.6.2 - 2015-10-28
 

@@ -160,8 +160,8 @@ The HTTP REST API supports the complete [FileSystem](../../api/org/apache/hadoop
     * [`SETOWNER`](#Set_Owner) (see [FileSystem](../../api/org/apache/hadoop/fs/FileSystem.html).setOwner)
     * [`SETPERMISSION`](#Set_Permission) (see [FileSystem](../../api/org/apache/hadoop/fs/FileSystem.html).setPermission)
     * [`SETTIMES`](#Set_Access_or_Modification_Time) (see [FileSystem](../../api/org/apache/hadoop/fs/FileSystem.html).setTimes)
-    * [`RENEWDELEGATIONTOKEN`](#Renew_Delegation_Token) (see [FileSystem](../../api/org/apache/hadoop/fs/FileSystem.html).renewDelegationToken)
-    * [`CANCELDELEGATIONTOKEN`](#Cancel_Delegation_Token) (see [FileSystem](../../api/org/apache/hadoop/fs/FileSystem.html).cancelDelegationToken)
+    * [`RENEWDELEGATIONTOKEN`](#Renew_Delegation_Token) (see [DelegationTokenAuthenticator](../../api/org/apache/hadoop/security/token/delegation/web/DelegationTokenAuthenticator.html).renewDelegationToken)
+    * [`CANCELDELEGATIONTOKEN`](#Cancel_Delegation_Token) (see [DelegationTokenAuthenticator](../../api/org/apache/hadoop/security/token/delegation/web/DelegationTokenAuthenticator.html).cancelDelegationToken)
     * [`CREATESNAPSHOT`](#Create_Snapshot) (see [FileSystem](../../api/org/apache/hadoop/fs/FileSystem.html).createSnapshot)
     * [`RENAMESNAPSHOT`](#Rename_Snapshot) (see [FileSystem](../../api/org/apache/hadoop/fs/FileSystem.html).renameSnapshot)
     * [`SETXATTR`](#Set_XAttr) (see [FileSystem](../../api/org/apache/hadoop/fs/FileSystem.html).setXAttr)
@@ -265,6 +265,8 @@ File and Directory Operations
         Location: webhdfs://<HOST>:<PORT>/<PATH>
         Content-Length: 0
 
+If no permissions are specified, the newly created file will be assigned with default 755 permission. This also applies for new directories. No umask mode will be applied from server side (so "fs.permissions.umask-mode" value configuration set on Namenode side will have no effect).
+
 **Note** that the reason of having two-step create/append is for preventing clients to send out data before the redirect. This issue is addressed by the "`Expect: 100-continue`" header in HTTP/1.1; see [RFC 2616, Section 8.2.3](http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html#sec8.2.3). Unfortunately, there are software library bugs (e.g. Jetty 6 HTTP server and Java 6 HTTP client), which do not correctly implement "`Expect: 100-continue`". The two-step create/append is a temporary workaround for the software library bugs.
 
 See also: [`overwrite`](#Overwrite), [`blocksize`](#Block_Size), [`replication`](#Replication), [`permission`](#Permission), [`buffersize`](#Buffer_Size), [FileSystem](../../api/org/apache/hadoop/fs/FileSystem.html).create
@@ -343,6 +345,8 @@ See also: [`offset`](#Offset), [`length`](#Length), [`buffersize`](#Buffer_Size)
         Transfer-Encoding: chunked
 
         {"boolean": true}
+
+If no permissions are specified, the newly created directory will be assigned with default 755 permission. This also applies to new files created. No umask mode will be applied from server side (so "fs.permissions.umask-mode" value configuration set on Namenode side will have no effect).
 
 See also: [`permission`](#Permission), [FileSystem](../../api/org/apache/hadoop/fs/FileSystem.html).mkdirs
 
@@ -974,7 +978,7 @@ See also: [`renewer`](#Renewer), [FileSystem](../../api/org/apache/hadoop/fs/Fil
 
         {"long": 1320962673997}           //the new expiration time
 
-See also: [`token`](#Token), [FileSystem](../../api/org/apache/hadoop/fs/FileSystem.html).renewDelegationToken
+See also: [`token`](#Token), [DelegationTokenAuthenticator](../../api/org/apache/hadoop/security/token/delegation/web/DelegationTokenAuthenticator.html).renewDelegationToken
 
 ### Cancel Delegation Token
 
@@ -987,7 +991,7 @@ See also: [`token`](#Token), [FileSystem](../../api/org/apache/hadoop/fs/FileSys
         HTTP/1.1 200 OK
         Content-Length: 0
 
-See also: [`token`](#Token), [FileSystem](../../api/org/apache/hadoop/fs/FileSystem.html).cancelDelegationToken
+See also: [`token`](#Token), [DelegationTokenAuthenticator](../../api/org/apache/hadoop/security/token/delegation/web/DelegationTokenAuthenticator.html).cancelDelegationToken
 
 Error Responses
 ---------------

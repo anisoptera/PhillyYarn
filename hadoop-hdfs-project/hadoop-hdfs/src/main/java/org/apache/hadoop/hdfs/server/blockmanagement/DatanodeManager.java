@@ -502,8 +502,18 @@ public class DatanodeManager {
   }
 
   public DatanodeStorageInfo[] getDatanodeStorageInfos(
-      DatanodeID[] datanodeID, String[] storageIDs)
-          throws UnregisteredNodeException {
+      DatanodeID[] datanodeID, String[] storageIDs,
+      String format, Object... args) throws UnregisteredNodeException {
+    if (datanodeID.length != storageIDs.length) {
+      final String err = (storageIDs.length == 0?
+          "Missing storageIDs: It is likely that the HDFS client,"
+          + " who made this call, is running in an older version of Hadoop"
+          + " which does not support storageIDs."
+          : "Length mismatched: storageIDs.length=" + storageIDs.length + " != "
+          ) + " datanodeID.length=" + datanodeID.length;
+      throw new HadoopIllegalArgumentException(
+          err + ", "+ String.format(format, args));
+    }
     if (datanodeID.length == 0) {
       return null;
     }
@@ -1174,14 +1184,6 @@ public class DatanodeManager {
   }
 
   /**
-   * @return true if this cluster has ever consisted of multiple racks, even if
-   *         it is not now a multi-rack cluster.
-   */
-  boolean hasClusterEverBeenMultiRack() {
-    return hasClusterEverBeenMultiRack;
-  }
-
-  /**
    * Check if the cluster now consists of multiple racks. If it does, and this
    * is the first time it's consisted of multiple racks, then process blocks
    * that may now be misreplicated.
@@ -1359,7 +1361,7 @@ public class DatanodeManager {
           throw new DisallowedDatanodeException(nodeinfo);
         }
 
-        if (nodeinfo == null || !nodeinfo.isAlive) {
+        if (nodeinfo == null || !nodeinfo.isRegistered()) {
           return new DatanodeCommand[]{RegisterCommand.REGISTER};
         }
 

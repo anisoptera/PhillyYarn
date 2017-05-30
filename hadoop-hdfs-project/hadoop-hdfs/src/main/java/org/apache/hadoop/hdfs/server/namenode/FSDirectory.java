@@ -741,6 +741,10 @@ public class FSDirectory implements Closeable {
       long dsDelta, short oldRep, short newRep) {
     EnumCounters<StorageType> typeSpaceDeltas =
         new EnumCounters<StorageType>(StorageType.class);
+    // empty file
+    if(dsDelta == 0){
+      return typeSpaceDeltas;
+    }
     // Storage type and its quota are only available when storage policy is set
     if (storagePolicyID != BlockStoragePolicySuite.ID_UNSPECIFIED) {
       BlockStoragePolicy storagePolicy = getBlockManager().getStoragePolicy(storagePolicyID);
@@ -1187,7 +1191,7 @@ public class FSDirectory implements Closeable {
               ezProto.getKeyName());
         } catch (InvalidProtocolBufferException e) {
           NameNode.LOG.warn("Error parsing protocol buffer of " +
-              "EZ XAttr " + xattr.getName());
+              "EZ XAttr " + xattr.getName() + " dir:" + inode.getFullPathName());
         }
       }
     }
@@ -1348,7 +1352,7 @@ public class FSDirectory implements Closeable {
    */
   FileEncryptionInfo getFileEncryptionInfo(INode inode, int snapshotId,
       INodesInPath iip) throws IOException {
-    if (!inode.isFile()) {
+    if (!inode.isFile() || !ezManager.hasCreatedEncryptionZone()) {
       return null;
     }
     readLock();
@@ -1669,7 +1673,11 @@ public class FSDirectory implements Closeable {
   }
 
   void checkOwner(FSPermissionChecker pc, INodesInPath iip)
-      throws AccessControlException {
+      throws AccessControlException, FileNotFoundException {
+    if (iip.getLastINode() == null) {
+      throw new FileNotFoundException(
+          "Directory/File does not exist " + iip.getPath());
+    }
     checkPermission(pc, iip, true, null, null, null, null);
   }
 

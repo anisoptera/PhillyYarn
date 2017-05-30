@@ -1,5 +1,98 @@
 Hadoop MapReduce Change Log
 
+Release 2.7.3 - 2016-08-25
+
+  INCOMPATIBLE CHANGES
+
+  NEW FEATURES
+
+  IMPROVEMENTS
+
+    MAPREDUCE-6436. JobHistory cache issue. (Kai Sasaki via zxu)
+
+    MAPREDUCE-6637. Testcase Failure : TestFileInputFormat.testSplitLocationInfo.
+    (Brahma Reddy Battula via wang)
+
+    MAPREDUCE-6622. Add capability to set JHS job cache to a
+    task-based limit (rchiang via rkanter)
+
+  OPTIMIZATIONS
+
+  BUG FIXES
+
+    MAPREDUCE-6633. AM should retry map attempts if the reduce task encounters
+    commpression related errors (Rushabh Shah via epayne)
+
+    MAPREDUCE-4785. TestMRApp occasionally fails (haibochen via rkanter)
+
+    MAPREDUCE-6540. TestMRTimelineEventHandling fails (sjlee)
+
+    MAPREDUCE-5485. Allow repeating job commit by extending OutputCommitter API. 
+    (Junping Du via jianhe)
+
+    MAPREDUCE-6377. JHS sorting on state column not working in webUi.
+    (zhihai xu via devaraj)
+
+    MAPREDUCE-5883. "Total megabyte-seconds" in job counters is slightly
+    misleading (Nathan Roberts via jlowe)
+
+    MAPREDUCE-6583. Clarify confusing sentence in MapReduce tutorial document.
+    (Kai Sasaki via aajisaka)
+
+    MAPREDUCE-6554. MRAppMaster servicestart failing with NPE in
+    MRAppMaster#parsePreviousJobHistory (Bibin A Chundatt via jlowe)
+
+    MAPREDUCE-6619. HADOOP_CLASSPATH is overwritten in MR container. (Junping
+    Du via jianhe)
+
+    MAPREDUCE-6618. YarnClientProtocolProvider leaking the YarnClient thread.
+    (Xuan Gong via jlowe)
+
+    MAPREDUCE-6621. Memory Leak in JobClient#submitJobInternal() (Xuan Gong
+    via jlowe)
+
+    MAPREDUCE-6413. TestLocalJobSubmission is failing with unknown host
+    (zhihai xu via jlowe)
+
+    MAPREDUCE-6191. Improve clearing stale state of Java serialization
+                    testcase.  (Sam Liu via Eric Yang)
+
+    MAPREDUCE-6460. TestRMContainerAllocator.
+    testAttemptNotFoundCausesRMCommunicatorException fails. (Zhihai Xu)
+
+    MAPREDUCE-6635. Unsafe long to int conversion in UncompressedSplitLineReader
+    and IndexOutOfBoundsException. (Junping Du via vvasudev)
+
+    MAPREDUCE-6645. TestWordStats outputs logs under directories other than
+    target/test-dir. (Gabor Liptak via aajisaka)
+
+    MAPREDUCE-6580. Test failure: TestMRJobsWithProfiler.
+    (Eric Badger via aajisaka)
+
+    MAPREDUCE-6302. Preempt reducers after a configurable timeout 
+    irrespective of headroom. (kasha via wangda)
+
+    MAPREDUCE-6670. TestJobListCache#testEviction sometimes fails on Windows
+    with timeout. (Gergely Novák via junping_du)
+
+    MAPREDUCE-5817. Mappers get rescheduled on node transition even after all
+    reducers are completed. (Sangjin Lee via kasha)
+
+    MAPREDUCE-6689. MapReduce job can infinitely increase number of reducer
+    resource requests (Wangda Tan via jlowe)
+
+    MAPREDUCE-6513. Job got hanged forever when one NM unstable for some
+    time. Contributed by Varun Saxena & Wangda Tan
+
+    MAPREDUCE-6558. multibyte delimiters with compressed input files generate
+    duplicate records (Wilfred Spiegelenburg via jlowe)
+
+    MAPREDUCE-6514. Job hangs as ask is not updated after ramping down of all
+    reducers. (Varun Saxena and Wangda Tan via vinodkv)
+
+    MAPREDUCE-6680. JHS UserLogDir scan algorithm sometime could skip directory
+    with update in CloudFS (Azure FileSystem, S3, etc.) (Junping Du via jianhe)
+
 Release 2.7.2 - 2016-01-25
 
   INCOMPATIBLE CHANGES
@@ -272,7 +365,65 @@ Release 2.7.0 - 2015-04-20
     MAPREDUCE-6285. ClientServiceDelegate should not retry upon
     AuthenticationException. (Jonathan Eagles via ozawa)
 
-Release 2.6.3 - UNRELEASED
+Release 2.6.5 - UNRELEASED
+
+  INCOMPATIBLE CHANGES
+
+  NEW FEATURES
+
+  IMPROVEMENTS
+
+  OPTIMIZATIONS
+
+  BUG FIXES
+
+    MAPREDUCE-6413. TestLocalJobSubmission is failing with unknown host
+    (zhihai xu via jlowe)
+
+    MAPREDUCE-6191. Improve clearing stale state of Java serialization
+                    testcase.  (Sam Liu via Eric Yang)
+
+    MAPREDUCE-6635. Unsafe long to int conversion in UncompressedSplitLineReader
+    and IndexOutOfBoundsException. (Junping Du via vvasudev)
+
+    MAPREDUCE-6656. [NNBench] OP_DELETE operation isn't working after
+    MAPREDUCE-6363. (J.Andreina via aajisaka)
+
+Release 2.6.4 - 2016-02-11
+
+  INCOMPATIBLE CHANGES
+
+  NEW FEATURES
+
+  IMPROVEMENTS
+
+  OPTIMIZATIONS
+
+  BUG FIXES
+
+    MAPREDUCE-6577. MR AM unable to load native library without
+    MR_AM_ADMIN_USER_ENV set (sjlee)
+
+    MAPREDUCE-5982. Task attempts that fail from the ASSIGNED state can
+    disappear (Chang Li via jlowe)
+
+    MAPREDUCE-6492. AsyncDispatcher exit with NPE on
+    TaskAttemptImpl#sendJHStartEventForAssignedFailTask (Bibin A Chundatt via
+    jlowe)
+
+    MAPREDUCE-6363. [NNBench] Lease mismatch error when running with multiple
+    mappers. (Vlad Sharanhovich and Bibin A Chundatt via aajisaka)
+
+    MAPREDUCE-6554. MRAppMaster servicestart failing with NPE in
+    MRAppMaster#parsePreviousJobHistory (Bibin A Chundatt via jlowe)
+
+    MAPREDUCE-6618. YarnClientProtocolProvider leaking the YarnClient thread.
+    (Xuan Gong via jlowe)
+
+    MAPREDUCE-6621. Memory Leak in JobClient#submitJobInternal() (Xuan Gong
+    via jlowe)
+
+Release 2.6.3 - 2015-12-17
 
   INCOMPATIBLE CHANGES
 
@@ -291,16 +442,22 @@ Release 2.6.3 - UNRELEASED
     MAPREDUCE-6528. Memory leak for HistoryFileManager.getJobSummary()
     (Junping Du via jlowe)
 
-    MAPREDUCE-6549. multibyte delimiters with LineRecordReader cause
-    duplicate records (wilfreds via rkanter)
+    MAPREDUCE-6377. JHS sorting on state column not working in webUi.
+    (zhihai xu via devaraj)
+
+    MAPREDUCE-5948. org.apache.hadoop.mapred.LineRecordReader does not handle
+    multibyte record delimiters well (Vinayakumar B, Rushabh Shah, and Akira
+    AJISAKA via jlowe)
+
+    MAPREDUCE-6481. LineRecordReader may give incomplete record and wrong
+    position/key information for uncompressed input sometimes. (Zhihai Xu via
+    jlowe)
 
     MAPREDUCE-5883. "Total megabyte-seconds" in job counters is slightly
     misleading (Nathan Roberts via jlowe)
 
-    MAPREDUCE-6377. JHS sorting on state column not working in webUi.
-    (zhihai xu via devaraj)
-
-    MAPREDUCE-6540. TestMRTimelineEventHandling fails (sjlee)
+    MAPREDUCE-6549. multibyte delimiters with LineRecordReader cause 
+    duplicate records (wilfreds via rkanter)
 
 Release 2.6.2 - 2015-10-28
 

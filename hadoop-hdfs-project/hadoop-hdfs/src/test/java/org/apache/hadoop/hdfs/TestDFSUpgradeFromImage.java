@@ -45,6 +45,7 @@ import org.apache.hadoop.hdfs.server.common.HdfsServerConstants.StartupOption;
 import org.apache.hadoop.hdfs.server.namenode.FSImage;
 import org.apache.hadoop.hdfs.server.namenode.FSImageFormat;
 import org.apache.hadoop.hdfs.server.namenode.FSImageTestUtil;
+import org.apache.hadoop.hdfs.server.namenode.IllegalReservedPathException;
 import org.apache.hadoop.test.GenericTestUtils;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
@@ -172,7 +173,7 @@ public class TestDFSUpgradeFromImage {
   private static FSInputStream dfsOpenFileWithRetries(DistributedFileSystem dfs,
       String pathName) throws IOException {
     IOException exc = null;
-    for (int tries = 0; tries < 10; tries++) {
+    for (int tries = 0; tries < 30; tries++) {
       try {
         return dfs.dfs.open(pathName);
       } catch (IOException e) {
@@ -183,6 +184,7 @@ public class TestDFSUpgradeFromImage {
         throw exc;
       }
       try {
+        LOG.info("Open failed. " + tries + " times. Retrying.");
         Thread.sleep(1000);
       } catch (InterruptedException ignored) {}
     }
@@ -326,7 +328,7 @@ public class TestDFSUpgradeFromImage {
       fail("Upgrade did not fail with bad MD5");
     } catch (IOException ioe) {
       String msg = StringUtils.stringifyException(ioe);
-      if (!msg.contains("Failed to load an FSImage file")) {
+      if (!msg.contains("Failed to load FSImage file")) {
         throw ioe;
       }
       int md5failures = appender.countExceptionsWithMessage(
@@ -485,10 +487,15 @@ public class TestDFSUpgradeFromImage {
               .format(false)
               .startupOption(StartupOption.UPGRADE)
               .numDataNodes(0).build();
-    } catch (IllegalArgumentException e) {
-      GenericTestUtils.assertExceptionContains(
-          "reserved path component in this version",
-          e);
+    } catch (IOException ioe) {
+        Throwable cause = ioe.getCause();
+        if (cause != null && cause instanceof IllegalReservedPathException) {
+          GenericTestUtils.assertExceptionContains(
+              "reserved path component in this version",
+              cause);
+        } else {
+          throw ioe;
+        }
     } finally {
       if (cluster != null) {
         cluster.shutdown();
@@ -564,8 +571,17 @@ public class TestDFSUpgradeFromImage {
     String pathStr = path.toString();
     HdfsFileStatus status = dfs.getFileInfo(pathStr);
     if (!status.isDir()) {
-      dfs.recoverLease(pathStr);
-      return;
+      for (int retries = 10; retries > 0; retries--) {
+        if (dfs.recoverLease(pathStr)) {
+          return;
+        } else {
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException ignored) {
+          }
+        }
+      }
+      throw new IOException("Failed to recover lease of " + path);
     }
     byte prev[] = HdfsFileStatus.EMPTY_NAME;
     DirectoryListing dirList;
