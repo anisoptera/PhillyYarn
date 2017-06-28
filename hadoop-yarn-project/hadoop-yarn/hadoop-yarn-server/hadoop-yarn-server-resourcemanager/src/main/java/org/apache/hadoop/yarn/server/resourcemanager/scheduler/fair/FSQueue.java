@@ -171,7 +171,7 @@ public abstract class FSQueue implements Queue, Schedulable {
     return steadyFairShare;
   }
 
-  public void setSteadyFairShare(Resource steadyFairShare) {
+  void setSteadyFairShare(Resource steadyFairShare) {
     this.steadyFairShare = steadyFairShare;
     metrics.setSteadyFairShare(steadyFairShare);
   }
@@ -180,35 +180,43 @@ public abstract class FSQueue implements Queue, Schedulable {
     return scheduler.getAllocationConfiguration().hasAccess(name, acl, user);
   }
 
-  public long getFairSharePreemptionTimeout() {
+  long getFairSharePreemptionTimeout() {
     return fairSharePreemptionTimeout;
   }
 
-  public void setFairSharePreemptionTimeout(long fairSharePreemptionTimeout) {
+  void setFairSharePreemptionTimeout(long fairSharePreemptionTimeout) {
     this.fairSharePreemptionTimeout = fairSharePreemptionTimeout;
   }
 
-  public long getMinSharePreemptionTimeout() {
+  long getMinSharePreemptionTimeout() {
     return minSharePreemptionTimeout;
   }
 
-  public void setMinSharePreemptionTimeout(long minSharePreemptionTimeout) {
+  void setMinSharePreemptionTimeout(long minSharePreemptionTimeout) {
     this.minSharePreemptionTimeout = minSharePreemptionTimeout;
   }
 
-  public float getFairSharePreemptionThreshold() {
+  float getFairSharePreemptionThreshold() {
     return fairSharePreemptionThreshold;
   }
 
-  public void setFairSharePreemptionThreshold(float fairSharePreemptionThreshold) {
+  void setFairSharePreemptionThreshold(float fairSharePreemptionThreshold) {
     this.fairSharePreemptionThreshold = fairSharePreemptionThreshold;
   }
 
   /**
    * Recomputes the shares for all child queues and applications based on this
-   * queue's current share
+   * queue's current share, and checks for starvation.
+   *
+   * @param checkStarvation whether to check for fairshare or minshare
+   *                        starvation on update
    */
-  public abstract void recomputeShares();
+  abstract void updateInternal(boolean checkStarvation);
+
+  public void update(Resource fairShare, boolean checkStarvation) {
+    setFairShare(fairShare);
+    updateInternal(checkStarvation);
+  }
 
   /**
    * Update the min/fair share preemption timeouts and threshold for this queue.

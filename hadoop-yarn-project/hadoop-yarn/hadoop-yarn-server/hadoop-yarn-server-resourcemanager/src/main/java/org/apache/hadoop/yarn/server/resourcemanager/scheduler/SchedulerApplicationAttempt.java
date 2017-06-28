@@ -500,6 +500,22 @@ public class SchedulerApplicationAttempt {
     this.schedulingOpportunities.setCount(priority, Math.max(count,  0));
   }
 
+  @Override
+  public int hashCode() {
+    return getApplicationAttemptId().hashCode();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (! (o instanceof SchedulerApplicationAttempt)) {
+      return false;
+    }
+
+    SchedulerApplicationAttempt other = (SchedulerApplicationAttempt) o;
+    return (this == other ||
+        this.getApplicationAttemptId().equals(other.getApplicationAttemptId()));
+  }
+
   /**
    * Return the number of times the application has been given an opportunity
    * to schedule a task at the given priority since the last time it

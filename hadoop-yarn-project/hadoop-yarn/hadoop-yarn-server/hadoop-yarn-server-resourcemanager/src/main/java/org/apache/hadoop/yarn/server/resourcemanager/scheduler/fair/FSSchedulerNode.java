@@ -29,6 +29,10 @@ import org.apache.hadoop.yarn.server.resourcemanager.rmnode.RMNode;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.SchedulerApplicationAttempt;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.SchedulerNode;
 
+import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
+
 @Private
 @Unstable
 public class FSSchedulerNode extends SchedulerNode {
@@ -36,6 +40,8 @@ public class FSSchedulerNode extends SchedulerNode {
   private static final Log LOG = LogFactory.getLog(FSSchedulerNode.class);
 
   private FSAppAttempt reservedAppSchedulable;
+  private final Set<RMContainer> containersForPreemption =
+      new ConcurrentSkipListSet<>();
 
   public FSSchedulerNode(RMNode node, boolean usePortForNodeName) {
     super(node, usePortForNodeName);

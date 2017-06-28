@@ -330,5 +330,19 @@ public class FiCaSchedulerApp extends SchedulerApplicationAttempt {
       ((FiCaSchedulerApp) appAttempt).getHeadroomProvider();
   }
 
+    /*
+     * Overriding to appease findbugs
+     */
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 
+    /*
+     * Overriding to appease findbugs
+     */
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o);
+    }
 }

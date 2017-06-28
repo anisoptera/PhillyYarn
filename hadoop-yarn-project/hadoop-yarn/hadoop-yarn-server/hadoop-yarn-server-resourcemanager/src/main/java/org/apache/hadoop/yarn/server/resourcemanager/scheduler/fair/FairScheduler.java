@@ -118,6 +118,7 @@ public class FairScheduler extends
     AbstractYarnScheduler<FSAppAttempt, FSSchedulerNode> {
   private FairSchedulerConfiguration conf;
 
+  private FSContext context;
   private Resource incrAllocation;
   private QueueManager queueMgr;
   private volatile Clock clock;
@@ -259,7 +260,6 @@ public class FairScheduler extends
           Thread.sleep(updateInterval);
           long start = getClock().getTime();
           update();
-          preemptTasksIfNecessary();
           long duration = getClock().getTime() - start;
           fsOpDurations.addUpdateThreadRunDuration(duration);
         } catch (InterruptedException ie) {
@@ -420,6 +420,10 @@ public class FairScheduler extends
           Resources.subtractFrom(
               toPreempt, container.getContainer().getResource());
         }
+      }
+
+      if (this.conf.getPreemptionEnabled()) {
+        createPreemptionThread();
       }
     } finally {
       // Clear preemptedResources for each app
@@ -1443,6 +1447,10 @@ public class FairScheduler extends
           schedulingThread.interrupt();
           schedulingThread.join(THREAD_JOIN_TIMEOUT_MS);
         }
+      }
+      if (preemptionThread != null) {
+        preemptionThread.interrupt();
+        preemptionThread.join(THREAD_JOIN_TIMEOUT_MS);
       }
       if (allocsLoader != null) {
         allocsLoader.stop();

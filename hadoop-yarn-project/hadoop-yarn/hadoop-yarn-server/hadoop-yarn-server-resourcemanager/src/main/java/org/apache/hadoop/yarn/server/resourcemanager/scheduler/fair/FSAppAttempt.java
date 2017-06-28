@@ -50,6 +50,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.rmcontainer.RMContainerFini
 import org.apache.hadoop.yarn.server.resourcemanager.rmcontainer.RMContainerImpl;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ActiveUsersManager;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.NodeType;
+import org.apache.hadoop.yarn.server.resourcemanager.scheduler.Queue;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.QueueMetrics;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.SchedulerApplicationAttempt;
 import org.apache.hadoop.yarn.server.utils.BuilderUtils;
@@ -697,17 +698,43 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
   }
 
 
-  static class RMContainerComparator implements Comparator<RMContainer>,
-      Serializable {
-    @Override
-    public int compare(RMContainer c1, RMContainer c2) {
-      int ret = c1.getContainer().getPriority().compareTo(
-          c2.getContainer().getPriority());
-      if (ret == 0) {
-        return c2.getContainerId().compareTo(c1.getContainerId());
-      }
-      return ret;
+  /**
+   * Helper method that computes the extent of fairshare fairshareStarvation.
+   */
+  Resource fairShareStarvation() {
+    Resource threshold = Resources.multiply(
+        getFairShare(), fsQueue.getFairSharePreemptionThreshold());
+    Resource starvation = Resources.subtractFrom(threshold, getResourceUsage());
+
+    long now = scheduler.getClock().getTime();
+    boolean starved = Resources.greaterThan(
+        fsQueue.getPolicy().getResourceCalculator(),
+        scheduler.getClusterResource(), starvation, Resources.none());
+
+    if (!starved) {
+      lastTimeAtFairShare = now;
     }
+
+    if (starved &&
+        (now - lastTimeAtFairShare > fsQueue.getFairSharePreemptionTimeout())) {
+      this.fairshareStarvation = starvation;
+    } else {
+      this.fairshareStarvation = Resources.none();
+    }
+    return this.fairshareStarvation;
+  }
+
+  ResourceRequest getNextResourceRequest() {
+    return appSchedulingInfo.getNextResourceRequest();
+  }
+
+  /**
+   * Helper method that captures if this app is identified to be starved.
+   * @return true if the app is starved for fairshare, false otherwise
+   */
+  @VisibleForTesting
+  boolean isStarvedForFairShare() {
+    return !Resources.isNone(fairshareStarvation);
   }
 
   /* Schedulable methods implementation */
@@ -739,14 +766,13 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
 
   @Override
   public Resource getResourceUsage() {
-    // Here the getPreemptedResources() always return zero, except in
-    // a preemption round
-    // In the common case where preempted resource is zero, return the
-    // current consumption Resource object directly without calling
-    // Resources.subtract which creates a new Resource object for each call.
-    return getPreemptedResources().equals(Resources.none()) ?
-        getCurrentConsumption() :
-        Resources.subtract(getCurrentConsumption(), getPreemptedResources());
+    /*
+     * getResourcesToPreempt() returns zero, except when there are containers
+     * to preempt. Avoid creating an object in the common case.
+     */
+    return getPreemptedResources().equals(Resources.none())
+        ? getCurrentConsumption()
+        : Resources.subtract(getCurrentConsumption(), getPreemptedResources());
   }
 
   @Override
@@ -794,24 +820,19 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
     return assignContainer(node, false);
   }
 
-  /**
-   * Preempt a running container according to the priority
+  /*
+   * Overriding to appease findbugs
    */
   @Override
-  public RMContainer preemptContainer() {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("App " + getName() + " is going to preempt a running " +
-          "container");
-    }
+  public int hashCode() {
+    return super.hashCode();
+  }
 
-    RMContainer toBePreempted = null;
-    for (RMContainer container : getLiveContainers()) {
-      if (!getPreemptionContainers().contains(container) &&
-          (toBePreempted == null ||
-              comparator.compare(toBePreempted, container) > 0)) {
-        toBePreempted = container;
-      }
-    }
-    return toBePreempted;
+  /*
+   * Overriding to appease findbugs
+   */
+  @Override
+  public boolean equals(Object o) {
+    return super.equals(o);
   }
 }
