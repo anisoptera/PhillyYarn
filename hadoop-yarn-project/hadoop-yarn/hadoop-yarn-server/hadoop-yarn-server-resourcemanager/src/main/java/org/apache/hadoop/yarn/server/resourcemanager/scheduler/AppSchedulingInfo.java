@@ -242,6 +242,27 @@ public class AppSchedulingInfo {
     return (request == null) ? null : request.getCapability();
   }
 
+  /**
+   +   * Method to return the next resource request to be serviced.
+   +   *
+   +   * In the initial implementation, we just pick any {@link ResourceRequest}
+   +   * corresponding to the highest priority.
+   +   *
+   +   * @return next {@link ResourceRequest} to allocate resources for.
+   +   */
+  @Unstable
+  public synchronized ResourceRequest getNextResourceRequest() {
+    // TODO: SchedulingPlacementSet?..
+    SchedulingPlacementSet<SchedulerNode> ps = schedulerKeyToPlacementSets.get(
+            schedulerKeys.firstKey());
+    if (null != ps) {
+      for (ResourceRequest rr : ps.getResourceRequests().values()) {
+        return rr;
+      }
+    }
+    return null;
+  }
+
   public synchronized boolean isBlacklisted(String resourceName) {
     return blacklist.contains(resourceName);
   }

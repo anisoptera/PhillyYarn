@@ -18,10 +18,7 @@
 
 package org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -66,8 +63,7 @@ public class FSLeafQueue extends FSQueue {
   
   // Variables used for preemption
   private long lastTimeAtMinShare;
-  private long lastTimeAtFairShareThreshold;
-  
+
   // Track the AM resource usage for this queue
   private Resource amResourceUsage;
 
@@ -76,13 +72,14 @@ public class FSLeafQueue extends FSQueue {
   public FSLeafQueue(String name, FairScheduler scheduler,
       FSParentQueue parent) {
     super(name, scheduler, parent);
+    this.scheduler = scheduler;
+    this.context = scheduler.getContext();
     this.lastTimeAtMinShare = scheduler.getClock().getTime();
-    this.lastTimeAtFairShareThreshold = scheduler.getClock().getTime();
     activeUsersManager = new ActiveUsersManager(getMetrics());
     amResourceUsage = Resource.newInstance(0, 0);
   }
   
-  public void addApp(FSAppAttempt app, boolean runnable) {
+  void addApp(FSAppAttempt app, boolean runnable) {
     writeLock.lock();
     try {
       if (runnable) {
@@ -513,20 +510,6 @@ public class FSLeafQueue extends FSQueue {
     // TODO Auto-generated method stub
   }
 
-  /**
-   * Update the preemption fields for the queue, i.e. the times since last was
-   * at its guaranteed share and over its fair share threshold.
-   */
-  public void updateStarvationStats() {
-    long now = scheduler.getClock().getTime();
-    if (!isStarvedForMinShare()) {
-      setLastTimeAtMinShare(now);
-    }
-    if (!isStarvedForFairShare()) {
-      setLastTimeAtFairShareThreshold(now);
-    }
-  }
-
   /** Allows setting weight for a dynamically created queue
    * Currently only used for reservation based queues
    * @param weight queue weight
@@ -537,36 +520,61 @@ public class FSLeafQueue extends FSQueue {
   }
 
   /**
-   * Helper method to check if the queue should preempt containers
+   * Helper method to compute the amount of minshare starvation.
    *
-   * @return true if check passes (can preempt) or false otherwise
+   * @return the extent of minshare starvation
    */
-  private boolean preemptContainerPreCheck() {
-    return parent.getPolicy().checkIfUsageOverFairShare(getResourceUsage(),
-        getFairShare());
+  private Resource minShareStarvation() {
+    // If demand < minshare, we should use demand to determine starvation
+    Resource desiredShare = Resources.min(policy.getResourceCalculator(),
+            scheduler.getClusterResource(), getMinShare(), getDemand());
+
+    Resource starvation = Resources.subtract(desiredShare, getResourceUsage());
+    boolean starved = !Resources.isNone(starvation);
+
+    long now = scheduler.getClock().getTime();
+    if (!starved) {
+      // Record that the queue is not starved
+      setLastTimeAtMinShare(now);
+    }
+
+    if (now - lastTimeAtMinShare < getMinSharePreemptionTimeout()) {
+      // the queue is not starved for the preemption timeout
+      starvation = Resources.clone(Resources.none());
+    }
+
+    return starvation;
   }
 
   /**
-   * Is a queue being starved for its min share.
+   * Helper method for tests to check if a queue is starved for minShare.
+   * @return whether starved for minshare
    */
   @VisibleForTesting
-  boolean isStarvedForMinShare() {
-    return isStarved(getMinShare());
+  private boolean isStarvedForMinShare() {
+    return !Resources.isNone(minShareStarvation());
   }
 
   /**
-   * Is a queue being starved for its fair share threshold.
+   * Helper method for tests to check if a queue is starved for fairshare.
+   * @return whether starved for fairshare
    */
   @VisibleForTesting
-  boolean isStarvedForFairShare() {
-    return isStarved(
-        Resources.multiply(getFairShare(), getFairSharePreemptionThreshold()));
+  private boolean isStarvedForFairShare() {
+    for (FSAppAttempt app : runnableApps) {
+      if (app.isStarvedForFairShare()) {
+        return true;
+      }
+    }
+    return false;
   }
 
-  private boolean isStarved(Resource share) {
-    Resource desiredShare = Resources.min(scheduler.getResourceCalculator(),
-        scheduler.getClusterResource(), share, getDemand());
-    return Resources.lessThan(scheduler.getResourceCalculator(),
-        scheduler.getClusterResource(), getResourceUsage(), desiredShare);
+  /**
+   * Helper method for tests to check if a queue is starved.
+   * @return whether starved for either minshare or fairshare
+   */
+  @VisibleForTesting
+  boolean isStarved() {
+    return isStarvedForMinShare() || isStarvedForFairShare();
   }
 }
