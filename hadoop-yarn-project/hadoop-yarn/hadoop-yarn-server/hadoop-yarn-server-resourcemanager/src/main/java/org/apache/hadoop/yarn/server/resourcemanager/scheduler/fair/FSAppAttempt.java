@@ -484,7 +484,7 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
    */
   // TODO: SchedulerRequestKey
   private Container createContainer(FSSchedulerNode node, Resource capability,
-                                     SchedulerRequestKey schedulerKey) {
+                                     Priority priority) {
 
     NodeId nodeId = node.getRMNode().getNodeID();
     ContainerId containerId = BuilderUtils.newContainerId(
@@ -493,8 +493,7 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
     // Create the container
     return BuilderUtils.newContainer(containerId, nodeId,
             node.getRMNode().getHttpAddress(), capability,
-            schedulerKey.getPriority(), null,
-            schedulerKey.getAllocationRequestId());
+            priority, null);
   }
 
   /**
@@ -612,16 +611,15 @@ public class FSAppAttempt extends SchedulerApplicationAttempt
     return getResourceRequests(priority).size() > 1;
   }
 
+
   private Resource assignContainer(FSSchedulerNode node, boolean reserved) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Node offered to app: " + getName() + " reserved: " + reserved);
     }
 
-    // TODO: lol, scheduler keys again
-    Collection<SchedulerRequestKey> keysToTry = (reserved) ?
-            Collections.singletonList(
-                    node.getReservedContainer().getReservedSchedulerKey()) :
-            getSchedulerKeys();
+    Collection<Priority> prioritiesToTry = (reserved) ?
+            Arrays.asList(node.getReservedContainer().getReservedPriority()) :
+            getPriorities();
 
     // For each priority, see if we can schedule a node local, rack local
     // or off-switch request. Rack of off-switch requests may be delayed
