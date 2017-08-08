@@ -78,6 +78,10 @@ public class TestFSLeafQueue extends FairSchedulerTestBase {
   @Test
   public void testUpdateDemand() {
     conf.set(FairSchedulerConfiguration.ASSIGN_MULTIPLE, "false");
+    // Set update interval to a large value so demand is not updated out of
+    // order. YARN-5264 changes this test upstream, and that is not affected
+    // by the value of update interval.
+    conf.setLong(FairSchedulerConfiguration.UPDATE_INTERVAL_MS, 60 * 1000);
     resourceManager = new MockRM(conf);
     resourceManager.start();
     scheduler = (FairScheduler) resourceManager.getResourceScheduler();

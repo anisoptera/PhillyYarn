@@ -243,4 +243,18 @@ public class FairSchedulerTestBase {
         .put(attemptId.getApplicationId(), app);
     return app;
   }
+
+  /**
+   * Add a node to the cluster and track the nodes in {@link #rmNodes}
+   * @param memory memory capacity of the node
+   * @param vcores cpu capacity of the node
+   */
+  protected void addNode(int memory, int vcores) {
+    int id = rmNodes.size() + 1;
+    RMNode node =
+        MockNodes.newNodeInfo(1, Resources.createResource(memory, vcores), id,
+            "127.0.0." + id);
+    scheduler.handle(new NodeAddedSchedulerEvent(node));
+    rmNodes.add(node);
+  }
 }

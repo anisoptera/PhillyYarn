@@ -76,7 +76,6 @@ public abstract class Resource implements Comparable<Resource> {
   @Stable
   public abstract void setMemory(int memory);
 
-
   /**
    * Get <em>number of virtual cpu cores</em> of the resource.
    * 

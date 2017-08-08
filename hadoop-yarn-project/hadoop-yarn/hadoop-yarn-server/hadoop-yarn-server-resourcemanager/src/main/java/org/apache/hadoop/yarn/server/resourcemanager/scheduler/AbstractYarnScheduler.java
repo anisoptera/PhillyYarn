@@ -66,6 +66,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.rmnode.RMNode;
 import org.apache.hadoop.yarn.server.resourcemanager.rmnode.RMNodeCleanContainerEvent;
 import org.apache.hadoop.yarn.util.resource.Resources;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.SettableFuture;
 
 
@@ -77,6 +78,9 @@ public abstract class AbstractYarnScheduler
     extends AbstractService implements ResourceScheduler {
 
   private static final Log LOG = LogFactory.getLog(AbstractYarnScheduler.class);
+
+  protected final ClusterNodeTracker<N> nodeTracker =
+      new ClusterNodeTracker<>();
 
   // Nodes in the cluster, indexed by NodeId
   protected Map<NodeId, N> nodes = new ConcurrentHashMap<NodeId, N>();
@@ -131,6 +135,11 @@ public abstract class AbstractYarnScheduler
           YarnConfiguration.DEFAULT_RM_WORK_PRESERVING_RECOVERY_SCHEDULING_WAIT_MS);
     createReleaseCache();
     super.serviceInit(conf);
+  }
+
+  @VisibleForTesting
+  public ClusterNodeTracker getNodeTracker() {
+    return nodeTracker;
   }
 
   public List<Container> getTransferredContainers(

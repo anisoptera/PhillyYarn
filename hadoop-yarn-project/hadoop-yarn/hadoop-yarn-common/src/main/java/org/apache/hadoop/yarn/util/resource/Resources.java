@@ -70,7 +70,7 @@ public class Resources {
 
     @Override
     public void setMemory(int memory) {
-      throw new RuntimeException("NONE cannot be modified!");
+      throw new RuntimeException("UNBOUNDED cannot be modified!");
     }
 
     @Override
@@ -80,7 +80,7 @@ public class Resources {
 
     @Override
     public void setVirtualCores(int cores) {
-      throw new RuntimeException("NONE cannot be modified!");
+      throw new RuntimeException("UNBOUNDED cannot be modified!");
     }
 
     @Override
@@ -109,6 +109,10 @@ public class Resources {
     return NONE;
   }
   
+  public static boolean isNone(Resource other) {
+    return NONE.equals(other);
+  }
+
   public static Resource unbounded() {
     return UNBOUNDED;
   }
