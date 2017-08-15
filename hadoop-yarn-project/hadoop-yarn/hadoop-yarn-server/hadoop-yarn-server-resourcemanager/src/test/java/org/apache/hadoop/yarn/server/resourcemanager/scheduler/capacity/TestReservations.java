@@ -58,6 +58,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.rmcontainer.RMContainer;
 import org.apache.hadoop.yarn.server.resourcemanager.rmcontainer.RMContainerEventType;
 import org.apache.hadoop.yarn.server.resourcemanager.rmcontainer.RMContainerImpl;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ActiveUsersManager;
+import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ClusterNodeTracker;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceLimits;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.common.fica.FiCaSchedulerApp;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.common.fica.FiCaSchedulerNode;
@@ -411,9 +412,10 @@ public class TestReservations {
     when(csContext.getNode(node_1.getNodeID())).thenReturn(node_1);
     when(csContext.getNode(node_2.getNodeID())).thenReturn(node_2);
 
-    cs.getAllNodes().put(node_0.getNodeID(), node_0);
-    cs.getAllNodes().put(node_1.getNodeID(), node_1);
-    cs.getAllNodes().put(node_2.getNodeID(), node_2);
+    ClusterNodeTracker<FiCaSchedulerNode> nt = cs.getNodeTracker();
+    nt.addNode(node_0);
+    nt.addNode(node_1);
+    nt.addNode(node_2);
 
     final int numNodes = 3;
     Resource clusterResource = Resources.createResource(numNodes * (8 * GB));

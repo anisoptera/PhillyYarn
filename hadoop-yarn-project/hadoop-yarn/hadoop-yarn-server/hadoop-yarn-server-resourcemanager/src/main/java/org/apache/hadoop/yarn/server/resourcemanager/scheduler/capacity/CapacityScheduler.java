@@ -382,7 +382,7 @@ public class CapacityScheduler extends
   static void schedule(CapacityScheduler cs) {
     // First randomize the start point
     int current = 0;
-    Collection<FiCaSchedulerNode> nodes = cs.getAllNodes().values();
+    Collection<FiCaSchedulerNode> nodes = cs.getAllNodes();
     int start = random.nextInt(nodes.size());
     for (FiCaSchedulerNode node : nodes) {
       if (current++ >= start) {
@@ -496,12 +496,12 @@ public class CapacityScheduler extends
     addNewQueues(queues, newQueues);
     
     // Re-configure queues
-    root.reinitialize(newRoot, clusterResource);
+    root.reinitialize(newRoot, getClusterResource());
     initializeQueueMappings();
 
     // Re-calculate headroom for active applications
-    root.updateClusterResource(clusterResource, new ResourceLimits(
-        clusterResource));
+    root.updateClusterResource(getClusterResource(), new ResourceLimits(
+        getClusterResource()));
 
     labelManager.reinitializeQueueLabels(getQueueToLabels());
     setQueueAcls(authorizer, queues);
@@ -986,7 +986,7 @@ public class CapacityScheduler extends
       application.updateBlacklist(blacklistAdditions, blacklistRemovals);
 
       return application.getAllocation(getResourceCalculator(),
-                   clusterResource, getMinimumResourceCapability());
+                   getClusterResource(), getMinimumResourceCapability());
     }
   }
 
@@ -1019,7 +1019,7 @@ public class CapacityScheduler extends
 
   private synchronized void nodeUpdate(RMNode nm) {
     if (LOG.isDebugEnabled()) {
-      LOG.debug("nodeUpdate: " + nm + " clusterResources: " + clusterResource);
+      LOG.debug("nodeUpdate: " + nm + " clusterResources: " + getClusterResource());
     }
 
     FiCaSchedulerNode node = getNode(nm.getNodeID());
@@ -1058,8 +1058,8 @@ public class CapacityScheduler extends
   private synchronized void updateNodeAndQueueResource(RMNode nm, 
       ResourceOption resourceOption) {
     updateNodeResource(nm, resourceOption);
-    root.updateClusterResource(clusterResource, new ResourceLimits(
-        clusterResource));
+    root.updateClusterResource(getClusterResource(), new ResourceLimits(
+        getClusterResource()));
   }
   
   /**
@@ -1073,7 +1073,7 @@ public class CapacityScheduler extends
    */
   private synchronized void updateLabelsOnNode(NodeId nodeId,
       Set<String> newLabels) {
-    FiCaSchedulerNode node = nodes.get(nodeId);
+    FiCaSchedulerNode node = nodeTracker.getNode(nodeId);
     if (null == node) {
       return;
     }
@@ -1130,18 +1130,18 @@ public class CapacityScheduler extends
       LeafQueue queue = ((LeafQueue)reservedApplication.getQueue());
       CSAssignment assignment =
           queue.assignContainers(
-              clusterResource,
+              getClusterResource(),
               node,
               // TODO, now we only consider limits for parent for non-labeled
               // resources, should consider labeled resources as well.
               new ResourceLimits(labelManager.getResourceByLabel(
-                  RMNodeLabelsManager.NO_LABEL, clusterResource)));
+                  RMNodeLabelsManager.NO_LABEL, getClusterResource())));
       
       RMContainer excessReservation = assignment.getExcessReservation();
       if (excessReservation != null) {
       Container container = excessReservation.getContainer();
       queue.completedContainer(
-          clusterResource, assignment.getApplication(), node, 
+          getClusterResource(), assignment.getApplication(), node,
           excessReservation, 
           SchedulerUtils.createAbnormalContainerStatus(
               container.getId(), 
@@ -1160,12 +1160,12 @@ public class CapacityScheduler extends
               ", available: " + node.getAvailableResource());
         }
         root.assignContainers(
-            clusterResource,
+            getClusterResource(),
             node,
             // TODO, now we only consider limits for parent for non-labeled
             // resources, should consider labeled resources as well.
             new ResourceLimits(labelManager.getResourceByLabel(
-                RMNodeLabelsManager.NO_LABEL, clusterResource)));
+                RMNodeLabelsManager.NO_LABEL, getClusterResource())));
       }
     } else {
       LOG.info("Skipping scheduling since node " + node.getNodeID() + 
@@ -1318,8 +1318,7 @@ public class CapacityScheduler extends
   private synchronized void addNode(RMNode nodeManager) {
     FiCaSchedulerNode schedulerNode = new FiCaSchedulerNode(nodeManager,
         usePortForNodeName, nodeManager.getNodeLabels());
-    this.nodes.put(nodeManager.getNodeID(), schedulerNode);
-    Resources.addTo(clusterResource, schedulerNode.getTotalResource());
+    this.nodeTracker.addNode(schedulerNode);
 
     // update this node to node label manager
     if (labelManager != null) {
@@ -1327,13 +1326,13 @@ public class CapacityScheduler extends
           schedulerNode.getTotalResource());
     }
     
-    root.updateClusterResource(clusterResource, new ResourceLimits(
-        clusterResource));
+    root.updateClusterResource(getClusterResource(), new ResourceLimits(
+        getClusterResource()));
     int numNodes = numNodeManagers.incrementAndGet();
     updateMaximumAllocation(schedulerNode, true);
     
     LOG.info("Added node " + nodeManager.getNodeAddress() + 
-        " clusterResource: " + clusterResource);
+        " clusterResource: " + getClusterResource());
 
     if (scheduleAsynchronously && numNodes == 1) {
       asyncSchedulerThread.beginSchedule();
@@ -1346,13 +1345,12 @@ public class CapacityScheduler extends
       labelManager.deactivateNode(nodeInfo.getNodeID());
     }
     
-    FiCaSchedulerNode node = nodes.get(nodeInfo.getNodeID());
+    FiCaSchedulerNode node = nodeTracker.getNode(nodeInfo.getNodeID());
     if (node == null) {
       return;
     }
-    Resources.subtractFrom(clusterResource, node.getTotalResource());
-    root.updateClusterResource(clusterResource, new ResourceLimits(
-        clusterResource));
+    root.updateClusterResource(getClusterResource(), new ResourceLimits(
+        getClusterResource()));
     int numNodes = numNodeManagers.decrementAndGet();
 
     if (scheduleAsynchronously && numNodes == 0) {
@@ -1379,11 +1377,11 @@ public class CapacityScheduler extends
           RMContainerEventType.KILL);
     }
 
-    this.nodes.remove(nodeInfo.getNodeID());
+    this.nodeTracker.removeNode(nodeInfo.getNodeID());
     updateMaximumAllocation(node, false);
 
     LOG.info("Removed node " + nodeInfo.getNodeAddress() + 
-        " clusterResource: " + clusterResource);
+        " clusterResource: " + getClusterResource());
   }
   
   @Lock(CapacityScheduler.class)
@@ -1413,7 +1411,7 @@ public class CapacityScheduler extends
     
     // Inform the queue
     LeafQueue queue = (LeafQueue)application.getQueue();
-    queue.completedContainer(clusterResource, application, node, 
+    queue.completedContainer(getClusterResource(), application, node,
         rmContainer, containerStatus, event, null, true);
 
     LOG.info("Application attempt " + application.getApplicationAttemptId()
@@ -1431,12 +1429,12 @@ public class CapacityScheduler extends
   
   @Lock(Lock.NoLock.class)
   public FiCaSchedulerNode getNode(NodeId nodeId) {
-    return nodes.get(nodeId);
+    return nodeTracker.getNode(nodeId);
   }
   
   @Lock(Lock.NoLock.class)
-  Map<NodeId, FiCaSchedulerNode> getAllNodes() {
-    return nodes;
+  List<FiCaSchedulerNode> getAllNodes() {
+    return nodeTracker.getAllNodes();
   }
 
   @Override
@@ -1667,9 +1665,9 @@ public class CapacityScheduler extends
     }
     // Move all live containers
     for (RMContainer rmContainer : app.getLiveContainers()) {
-      source.detachContainer(clusterResource, app, rmContainer);
+      source.detachContainer(getClusterResource(), app, rmContainer);
       // attach the Container to another queue
-      dest.attachContainer(clusterResource, app, rmContainer);
+      dest.attachContainer(getClusterResource(), app, rmContainer);
     }
     // Detach the application..
     source.finishApplicationAttempt(app, sourceQueueName);

@@ -295,8 +295,8 @@ public class FairScheduler extends
     // Recursively update demands for all queues
     rootQueue.updateDemand();
 
-    rootQueue.update(clusterResource, shouldAttemptPreemption());
-    rootQueue.setFairShare(clusterResource);
+    rootQueue.update(getClusterResource(), shouldAttemptPreemption());
+    rootQueue.setFairShare(getClusterResource());
 
     // Update metrics
     updateRootQueueMetrics();
@@ -304,7 +304,7 @@ public class FairScheduler extends
     if (LOG.isDebugEnabled()) {
       if (--updatesToSkipForDebug < 0) {
         updatesToSkipForDebug = UPDATE_DEBUG_FREQUENCY;
-        LOG.debug("Cluster Capacity: " + clusterResource +
+        LOG.debug("Cluster Capacity: " + getClusterResource() +
             "  Allocations: " + rootMetrics.getAllocatedResources() +
             "  Availability: " + Resource.newInstance(
             rootMetrics.getAvailableMB(),
@@ -344,7 +344,7 @@ public class FairScheduler extends
   }
 
   private FSSchedulerNode getFSSchedulerNode(NodeId nodeId) {
-    return nodes.get(nodeId);
+    return nodeTracker.getNode(nodeId);
   }
 
   public double getNodeLocalityThreshold() {
@@ -648,15 +648,17 @@ public class FairScheduler extends
 
   private synchronized void addNode(RMNode node) {
     FSSchedulerNode schedulerNode = new FSSchedulerNode(node, usePortForNodeName);
-    nodes.put(node.getNodeID(), schedulerNode);
-    Resources.addTo(clusterResource, schedulerNode.getTotalResource());
+    // nodes.put(node.getNodeID(), schedulerNode);
+    // TODO: seems like we probably shouldn't be using both of these...
+    nodeTracker.addNode(schedulerNode);
+    
     updateRootQueueMetrics();
     updateMaximumAllocation(schedulerNode, true);
 
-    queueMgr.getRootQueue().setSteadyFairShare(clusterResource);
+    queueMgr.getRootQueue().setSteadyFairShare(getClusterResource());
     queueMgr.getRootQueue().recomputeSteadyShares();
     LOG.info("Added node " + node.getNodeAddress() +
-        " cluster capacity: " + clusterResource);
+        " cluster capacity: " + getClusterResource());
   }
 
   private synchronized void removeNode(RMNode rmNode) {
@@ -665,8 +667,6 @@ public class FairScheduler extends
     if (node == null) {
       return;
     }
-    Resources.subtractFrom(clusterResource, node.getTotalResource());
-    updateRootQueueMetrics();
 
     // Remove running containers
     List<RMContainer> runningContainers = node.getRunningContainers();
@@ -688,12 +688,13 @@ public class FairScheduler extends
           RMContainerEventType.KILL);
     }
 
-    nodes.remove(rmNode.getNodeID());
-    queueMgr.getRootQueue().setSteadyFairShare(clusterResource);
+    nodeTracker.removeNode(rmNode.getNodeID());
+    updateRootQueueMetrics();
+    queueMgr.getRootQueue().setSteadyFairShare(getClusterResource());
     queueMgr.getRootQueue().recomputeSteadyShares();
     updateMaximumAllocation(node, false);
     LOG.info("Removed node " + rmNode.getNodeAddress() +
-        " cluster capacity: " + clusterResource);
+        " cluster capacity: " + getClusterResource());
   }
 
   @Override
@@ -711,7 +712,7 @@ public class FairScheduler extends
 
     // Sanity check
     SchedulerUtils.normalizeRequests(ask, DOMINANT_RESOURCE_CALCULATOR,
-        clusterResource, minimumAllocation, getMaximumResourceCapability(),
+        getClusterResource(), minimumAllocation, getMaximumResourceCapability(),
         incrAllocation);
 
     // Set amResource for this app
@@ -772,7 +773,7 @@ public class FairScheduler extends
   private synchronized void nodeUpdate(RMNode nm) {
     long start = getClock().getTime();
     if (LOG.isDebugEnabled()) {
-      LOG.debug("nodeUpdate: " + nm + " cluster capacity: " + clusterResource);
+      LOG.debug("nodeUpdate: " + nm + " cluster capacity: " + getClusterResource());
     }
     eventLog.log("HEARTBEAT", nm.getHostName());
     FSSchedulerNode node = getFSSchedulerNode(nm.getNodeID());
@@ -811,7 +812,7 @@ public class FairScheduler extends
 
   void continuousSchedulingAttempt() throws InterruptedException {
     long start = getClock().getTime();
-    List<NodeId> nodeIdList = new ArrayList<NodeId>(nodes.keySet());
+    List<NodeId> nodeIdList = nodeTracker.getAllNodeIds();
     // Sort the nodes by space available on them, so that we offer
     // containers on emptier nodes first, facilitating an even spread. This
     // requires holding the scheduler lock, so that the space available on a
@@ -850,15 +851,15 @@ public class FairScheduler extends
 
     @Override
     public int compare(NodeId n1, NodeId n2) {
-      if (!nodes.containsKey(n1)) {
+      if (!nodeTracker.exists(n1)) {
         return 1;
       }
-      if (!nodes.containsKey(n2)) {
+      if (!nodeTracker.exists(n2)) {
         return -1;
       }
-      return RESOURCE_CALCULATOR.compare(clusterResource,
-              nodes.get(n2).getAvailableResource(),
-              nodes.get(n1).getAvailableResource());
+      return RESOURCE_CALCULATOR.compare(getClusterResource(),
+              nodeTracker.getNode(n2).getAvailableResource(),
+              nodeTracker.getNode(n1).getAvailableResource());
     }
   }
 
@@ -870,7 +871,7 @@ public class FairScheduler extends
     }
 
     final NodeId nodeID = node.getNodeID();
-    if (!nodes.containsKey(nodeID)) {
+    if (!nodeTracker.exists(nodeID)) {
       // The node might have just been removed while this thread was waiting
       // on the synchronized lock before it entered this synchronized method
       LOG.info("Skipping scheduling as the node " + nodeID +
@@ -958,7 +959,7 @@ public class FairScheduler extends
   private void updateRootQueueMetrics() {
     rootMetrics.setAvailableResourcesToQueue(
         Resources.subtract(
-            clusterResource, rootMetrics.getAllocatedResources()));
+            getClusterResource(), rootMetrics.getAllocatedResources()));
   }
 
   /**
@@ -1307,7 +1308,7 @@ public class FairScheduler extends
 
   @Override
   public int getNumClusterNodes() {
-    return nodes.size();
+    return nodeTracker.nodeCount();
   }
 
   @Override
@@ -1337,7 +1338,7 @@ public class FairScheduler extends
       // if it does not already exist, so it can be displayed on the web UI.
       synchronized (FairScheduler.this) {
         allocConf = queueInfo;
-        allocConf.getDefaultSchedulingPolicy().initialize(clusterResource);
+        allocConf.getDefaultSchedulingPolicy().initialize(getClusterResource());
         queueMgr.updateAllocationConfiguration(allocConf);
         maxRunningEnforcer.updateRunnabilityOnReload();
       }
@@ -1481,7 +1482,7 @@ public class FairScheduler extends
       ResourceOption resourceOption) {
     super.updateNodeResource(nm, resourceOption);
     updateRootQueueMetrics();
-    queueMgr.getRootQueue().setSteadyFairShare(clusterResource);
+    queueMgr.getRootQueue().setSteadyFairShare(getClusterResource());
     queueMgr.getRootQueue().recomputeSteadyShares();
   }
 

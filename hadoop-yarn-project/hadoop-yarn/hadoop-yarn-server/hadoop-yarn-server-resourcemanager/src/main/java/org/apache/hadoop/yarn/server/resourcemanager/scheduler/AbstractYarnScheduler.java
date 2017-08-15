@@ -20,7 +20,6 @@ package org.apache.hadoop.yarn.server.resourcemanager.scheduler;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
@@ -81,12 +80,6 @@ public abstract class AbstractYarnScheduler
 
   protected final ClusterNodeTracker<N> nodeTracker =
       new ClusterNodeTracker<>();
-
-  // Nodes in the cluster, indexed by NodeId
-  protected Map<NodeId, N> nodes = new ConcurrentHashMap<NodeId, N>();
-
-  // Whole capacity of the cluster
-  protected Resource clusterResource = Resource.newInstance(0, 0);
 
   protected Resource minimumAllocation;
   private Resource maximumAllocation;
@@ -174,7 +167,7 @@ public abstract class AbstractYarnScheduler
 
   @Override
   public Resource getClusterResource() {
-    return clusterResource;
+    return nodeTracker.getClusterCapacity();
   }
 
   @Override
@@ -281,7 +274,7 @@ public abstract class AbstractYarnScheduler
 
   @Override
   public SchedulerNodeReport getNodeReport(NodeId nodeId) {
-    N node = nodes.get(nodeId);
+    N node = nodeTracker.getNode(nodeId);
     return node == null ? null : new SchedulerNodeReport(node);
   }
 
@@ -380,11 +373,11 @@ public abstract class AbstractYarnScheduler
         container));
 
       // recover scheduler node
-      nodes.get(nm.getNodeID()).recoverContainer(rmContainer);
+      nodeTracker.getNode(nm.getNodeID()).recoverContainer(rmContainer);
 
       // recover queue: update headroom etc.
       Queue queue = schedulerAttempt.getQueue();
-      queue.recoverContainer(clusterResource, schedulerAttempt, rmContainer);
+      queue.recoverContainer(getClusterResource(), schedulerAttempt, rmContainer);
 
       // recover scheduler attempt
       schedulerAttempt.recoverContainer(rmContainer);
@@ -511,7 +504,7 @@ public abstract class AbstractYarnScheduler
   }
 
   public SchedulerNode getSchedulerNode(NodeId nodeId) {
-    return nodes.get(nodeId);
+    return nodeTracker.getNode(nodeId);
   }
 
   @Override
@@ -576,18 +569,14 @@ public abstract class AbstractYarnScheduler
           + " from: " + oldResource + ", to: "
           + newResource);
 
-      nodes.remove(nm.getNodeID());
+      nodeTracker.removeNode(nm.getNodeID());
       updateMaximumAllocation(node, false);
 
       // update resource to node
       node.setTotalResource(newResource);
 
-      nodes.put(nm.getNodeID(), (N)node);
+      nodeTracker.addNode((N)node);
       updateMaximumAllocation(node, true);
-
-      // update resource to clusterResource
-      Resources.subtractFrom(clusterResource, oldResource);
-      Resources.addTo(clusterResource, newResource);
     } else {
       // Log resource change
       LOG.warn("Update resource on node: " + node.getNodeName() 
@@ -634,14 +623,14 @@ public abstract class AbstractYarnScheduler
         // We only have to iterate through the nodes if the current max memory
         // or vcores was equal to the removed node's
         if (maxNodeMemory == -1 || maxNodeVCores == -1) {
-          for (Map.Entry<NodeId, N> nodeEntry : nodes.entrySet()) {
+          for (N nodeEntry : nodeTracker.getAllNodes()) {
             int nodeMemory =
-                nodeEntry.getValue().getTotalResource().getMemory();
+                nodeEntry.getTotalResource().getMemory();
             if (nodeMemory > maxNodeMemory) {
               maxNodeMemory = nodeMemory;
             }
             int nodeVCores =
-                nodeEntry.getValue().getTotalResource().getVirtualCores();
+                nodeEntry.getTotalResource().getVirtualCores();
             if (nodeVCores > maxNodeVCores) {
               maxNodeVCores = nodeVCores;
             }

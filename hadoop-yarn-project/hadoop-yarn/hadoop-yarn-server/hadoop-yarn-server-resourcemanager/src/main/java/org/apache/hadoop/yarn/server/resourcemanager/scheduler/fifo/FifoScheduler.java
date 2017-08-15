@@ -138,11 +138,11 @@ public class FifoScheduler extends
       QueueInfo queueInfo = recordFactory.newRecordInstance(QueueInfo.class);
       queueInfo.setQueueName(DEFAULT_QUEUE.getQueueName());
       queueInfo.setCapacity(1.0f);
-      if (clusterResource.getMemory() == 0) {
+      if (getClusterResource().getMemory() == 0) {
         queueInfo.setCurrentCapacity(0.0f);
       } else {
         queueInfo.setCurrentCapacity((float) usedResource.getMemory()
-            / clusterResource.getMemory());
+            / getClusterResource().getMemory());
       }
       queueInfo.setMaximumCapacity(1.0f);
       queueInfo.setChildQueues(new ArrayList<QueueInfo>());
@@ -279,7 +279,7 @@ public class FifoScheduler extends
 
   @Override
   public int getNumClusterNodes() {
-    return nodes.size();
+    return nodeTracker.nodeCount();
   }
 
   @Override
@@ -307,7 +307,7 @@ public class FifoScheduler extends
 
     // Sanity check
     SchedulerUtils.normalizeRequests(ask, resourceCalculator, 
-        clusterResource, minimumAllocation, getMaximumResourceCapability());
+        getClusterResource(), minimumAllocation, getMaximumResourceCapability());
 
     // Release containers
     releaseContainers(release, application);
@@ -352,7 +352,7 @@ public class FifoScheduler extends
   }
 
   private FiCaSchedulerNode getNode(NodeId nodeId) {
-    return nodes.get(nodeId);
+    return nodeTracker.getNode(nodeId);
   }
 
   @VisibleForTesting
@@ -501,7 +501,7 @@ public class FifoScheduler extends
       application.showRequests();
 
       // Done
-      if (Resources.lessThan(resourceCalculator, clusterResource,
+      if (Resources.lessThan(resourceCalculator, getClusterResource(),
               node.getAvailableResource(), minimumAllocation)) {
         break;
       }
@@ -726,7 +726,7 @@ public class FifoScheduler extends
       return;
     }
 
-    if (Resources.greaterThanOrEqual(resourceCalculator, clusterResource,
+    if (Resources.greaterThanOrEqual(resourceCalculator, getClusterResource(),
             node.getAvailableResource(),minimumAllocation)) {
       LOG.debug("Node heartbeat " + rmNode.getNodeID() + 
           " available resource = " + node.getAvailableResource());
@@ -745,12 +745,12 @@ public class FifoScheduler extends
   }
 
   private void updateAppHeadRoom(SchedulerApplicationAttempt schedulerAttempt) {
-    schedulerAttempt.setHeadroom(Resources.subtract(clusterResource,
+    schedulerAttempt.setHeadroom(Resources.subtract(getClusterResource(),
       usedResource));
   }
 
   private void updateAvailableResourcesMetrics() {
-    metrics.setAvailableResourcesToQueue(Resources.subtract(clusterResource,
+    metrics.setAvailableResourcesToQueue(Resources.subtract(getClusterResource(),
       usedResource));
   }
 
@@ -911,11 +911,8 @@ public class FifoScheduler extends
     }
     
     //Remove the node
-    this.nodes.remove(nodeInfo.getNodeID());
+    this.nodeTracker.removeNode(nodeInfo.getNodeID());
     updateMaximumAllocation(node, false);
-    
-    // Update cluster metrics
-    Resources.subtractFrom(clusterResource, node.getTotalResource());
   }
 
   @Override
@@ -937,8 +934,7 @@ public class FifoScheduler extends
   private synchronized void addNode(RMNode nodeManager) {
     FiCaSchedulerNode schedulerNode = new FiCaSchedulerNode(nodeManager,
         usePortForNodeName);
-    this.nodes.put(nodeManager.getNodeID(), schedulerNode);
-    Resources.addTo(clusterResource, schedulerNode.getTotalResource());
+    this.nodeTracker.addNode(schedulerNode);
     updateMaximumAllocation(schedulerNode, true);
   }
 
