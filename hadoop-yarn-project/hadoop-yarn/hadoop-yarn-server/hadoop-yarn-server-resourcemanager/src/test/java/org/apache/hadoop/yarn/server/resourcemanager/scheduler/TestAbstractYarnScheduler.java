@@ -303,22 +303,19 @@ public class TestAbstractYarnScheduler extends ParameterizedSchedulerTestBase {
 
       verifyMaximumResourceCapability(configuredMaximumResource, scheduler);
 
-      scheduler.nodes = new HashMap<NodeId, SchedulerNode>();
+      ClusterNodeTracker<SchedulerNode> tracker = scheduler.getNodeTracker();
 
-      scheduler.nodes.put(mockNode1.getNodeID(), mockNode1);
-      scheduler.updateMaximumAllocation(mockNode1, true);
+
+      tracker.addNode(mockNode1);
       verifyMaximumResourceCapability(fullResource1, scheduler);
 
-      scheduler.nodes.put(mockNode2.getNodeID(), mockNode2);
-      scheduler.updateMaximumAllocation(mockNode2, true);
+      tracker.addNode(mockNode2);
       verifyMaximumResourceCapability(fullResource2, scheduler);
 
-      scheduler.nodes.remove(mockNode2.getNodeID());
-      scheduler.updateMaximumAllocation(mockNode2, false);
+      tracker.removeNode(mockNode2.getNodeID());
       verifyMaximumResourceCapability(fullResource1, scheduler);
 
-      scheduler.nodes.remove(mockNode1.getNodeID());
-      scheduler.updateMaximumAllocation(mockNode1, false);
+      tracker.removeNode(mockNode1.getNodeID());
       verifyMaximumResourceCapability(configuredMaximumResource, scheduler);
     } finally {
       rm.stop();
