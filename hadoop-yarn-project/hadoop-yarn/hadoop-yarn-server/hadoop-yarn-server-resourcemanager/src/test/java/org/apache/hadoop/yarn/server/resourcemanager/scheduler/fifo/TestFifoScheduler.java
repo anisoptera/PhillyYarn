@@ -62,13 +62,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.rmapp.RMAppImpl;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.RMAppAttemptImpl;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.RMAppAttemptMetrics;
 import org.apache.hadoop.yarn.server.resourcemanager.rmnode.RMNode;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.AbstractYarnScheduler;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.QueueMetrics;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.ResourceScheduler;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.SchedulerAppReport;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.SchedulerApplicationAttempt;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.SchedulerNode;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.TestSchedulerUtils;
+import org.apache.hadoop.yarn.server.resourcemanager.scheduler.*;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.common.fica.FiCaSchedulerNode;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.event.AppAddedSchedulerEvent;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.event.AppAttemptAddedSchedulerEvent;
@@ -271,13 +265,8 @@ public class TestFifoScheduler {
         new NMTokenSecretManagerInRM(conf);
     nmTokenSecretManager.rollMasterKey();
     RMApplicationHistoryWriter writer = mock(RMApplicationHistoryWriter.class);
-    
-    FifoScheduler scheduler = new FifoScheduler(){
-      @SuppressWarnings("unused")
-      public Map<NodeId, FiCaSchedulerNode> getNodes(){
-        return nodes;
-      }
-    };
+
+    FifoScheduler scheduler = new FifoScheduler();
     RMContext rmContext = new RMContextImpl(dispatcher, null, null, null, null,
         null, containerTokenSecretManager, nmTokenSecretManager, null, scheduler);
     rmContext.setSystemMetricsPublisher(mock(SystemMetricsPublisher.class));
@@ -292,12 +281,9 @@ public class TestFifoScheduler {
         Resources.createResource(2048, 4), 1, "127.0.0.1");
     NodeAddedSchedulerEvent nodeEvent1 = new NodeAddedSchedulerEvent(node0);
     scheduler.handle(nodeEvent1);
-    
-    Method method = scheduler.getClass().getDeclaredMethod("getNodes");
-    @SuppressWarnings("unchecked")
-    Map<NodeId, FiCaSchedulerNode> schedulerNodes = 
-        (Map<NodeId, FiCaSchedulerNode>) method.invoke(scheduler);
-    assertEquals(schedulerNodes.values().size(), 1);
+
+    ClusterNodeTracker<FiCaSchedulerNode> nodeTracker = scheduler.getNodeTracker();
+    assertEquals(nodeTracker.getAllNodes().size(), 1);
     
     Resource newResource = Resources.createResource(1024, 4);
     
@@ -307,9 +293,9 @@ public class TestFifoScheduler {
     scheduler.handle(node0ResourceUpdate);
     
     // SchedulerNode's total resource and available resource are changed.
-    assertEquals(schedulerNodes.get(node0.getNodeID()).getTotalResource()
+    assertEquals(nodeTracker.getNode(node0.getNodeID()).getTotalResource()
         .getMemory(), 1024);
-    assertEquals(schedulerNodes.get(node0.getNodeID()).
+    assertEquals(nodeTracker.getNode(node0.getNodeID()).
         getAvailableResource().getMemory(), 1024);
     QueueInfo queueInfo = scheduler.getQueueInfo(null, false, false);
     Assert.assertEquals(0.0f, queueInfo.getCurrentCapacity(), 0.0f);
